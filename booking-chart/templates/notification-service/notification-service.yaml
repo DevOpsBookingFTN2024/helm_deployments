@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.notification.service.name}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: {{.Values.notification.deployment.name}}
+    # app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+    - protocol: TCP
+      name: http
+      port: {{.Values.notification.service.port}}
+      targetPort: {{.Values.notification.service.port}}
+  # {{- if .Values.notification.metrics.enabled }}
+  #   - protocol: TCP
+  #     name: metrics
+  #     port: {{ .Values.notification.metrics.port }}
+  #     targetPort: {{ .Values.notification.metrics.port }}
+  # {{- end }}
+  type: ClusterIP
+  selector:
+    app: {{.Values.notification.deployment.name}}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.notification.deployment.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.notification.deployment.replicaCount | default 1}}
+  selector:
+    matchLabels:
+      app: {{.Values.notification.deployment.name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.notification.deployment.name}}
+    spec:
+      containers:
+        - name: notification-service
+          image: "{{ .Values.notification.deployment.image.repository }}:{{ .Values.notification.deployment.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{.Values.notification.deployment.containerPort | int}}
+            # {{- if .Values.notification.metrics.enabled }}
+            # - name : metrics
+            #   containerPort: {{ .Values.notification.metrics.port }}
+            # {{- end }}
+          # resources:
+          #   limits:
+          #     memory: "512Mi"
+          #     cpu: "500m"
+          #   requests:
+          #     memory: "256Mi"
+          #     cpu: "250m"
+          env:
+            - name: SPRING_DATA_MONGODB_URI
+              value: {{.Values.notification.env.datasourceUrl}}
+            - name: SPRING_DATA_MONGODB_DATABASE
+              value: {{.Values.notification.env.datasource}}
+            - name: USER_SERVICE_URL
+              value: {{.Values.notification.env.userServiceUrl}}
+          livenessProbe:
+            httpGet:
+              path: {{.Values.notification.deployment.probes.liveness.path | default "/actuator/health/liveness"}}
+              port: {{.Values.notification.deployment.containerPort}}
+            initialDelaySeconds: {{.Values.notification.deployment.probes.liveness.initialDelaySeconds | default 30}}
+            periodSeconds: {{.Values.notification.deployment.probes.liveness.periodSeconds | default 10}}
+
+          readinessProbe:
+            httpGet:
+              path: {{.Values.notification.deployment.probes.readiness.path | default "/actuator/health/readiness"}}
+              port: {{.Values.notification.deployment.containerPort}}
+            initialDelaySeconds: {{.Values.notification.deployment.probes.readiness.initialDelaySeconds | default 15}}
+            periodSeconds: {{.Values.notification.deployment.probes.readiness.periodSeconds | default 5}}
+      imagePullSecrets:
+        - name: {{.Values.notification.deployment.imagePullSecret}}
