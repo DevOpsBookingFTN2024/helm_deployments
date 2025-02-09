@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.user.service.name}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: {{.Values.user.deployment.name}}
+    # app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+    - protocol: TCP
+      name: http
+      port: {{.Values.user.service.port}}
+      targetPort: {{.Values.user.service.port}}
+  # {{- if .Values.user.metrics.enabled }}
+  #   - protocol: TCP
+  #     name: metrics
+  #     port: {{ .Values.user.metrics.port }}
+  #     targetPort: {{ .Values.user.metrics.port }}
+  # {{- end }}
+  type: ClusterIP
+  selector:
+    app: {{.Values.user.deployment.name}}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.user.deployment.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.user.deployment.replicaCount | default 1}}
+  selector:
+    matchLabels:
+      app: {{.Values.user.deployment.name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.user.deployment.name}}
+    spec:
+      containers:
+        - name: user-service
+          image: "{{ .Values.user.deployment.image.repository }}:{{ .Values.user.deployment.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{.Values.user.deployment.containerPort | int}}
+            # {{- if .Values.user.metrics.enabled }}
+            # - name : metrics
+            #   containerPort: {{ .Values.user.metrics.port }}
+            # {{- end }}
+          # resources:
+          #   limits:
+          #     memory: "512Mi"
+          #     cpu: "500m"
+          #   requests:
+          #     memory: "256Mi"
+          #     cpu: "250m"
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: {{.Values.user.env.datasourceUrl}}
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{.Values.user.env.datasourceUsername}}
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{.Values.user.env.datasourcePassword}}
+            - name: ACCOMMODATION_SERVICE_URL
+              value: {{.Values.user.env.accommodationServiceUrl}}
+            - name: RESERVATION_SERVICE_URL
+              value: {{.Values.user.env.reservationServiceUrl}}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{.Values.user.env.notificationServiceUrl}}
+          livenessProbe:
+            httpGet:
+              path: {{.Values.user.deployment.probes.liveness.path | default "/actuator/health/liveness"}}
+              port: {{.Values.user.deployment.containerPort}}
+            initialDelaySeconds: {{.Values.user.deployment.probes.liveness.initialDelaySeconds | default 30}}
+            periodSeconds: {{.Values.user.deployment.probes.liveness.periodSeconds | default 10}}
+
+          readinessProbe:
+            httpGet:
+              path: {{.Values.user.deployment.probes.readiness.path | default "/actuator/health/readiness"}}
+              port: {{.Values.user.deployment.containerPort}}
+            initialDelaySeconds: {{.Values.user.deployment.probes.readiness.initialDelaySeconds | default 15}}
+            periodSeconds: {{.Values.user.deployment.probes.readiness.periodSeconds | default 5}}
+      imagePullSecrets:
+        - name: {{.Values.user.deployment.imagePullSecret}}

@@ -1,0 +1,286 @@
+namespace: booking
+replicaCount: 1
+
+client:
+  service:
+    name: client-service
+    type: NodePort
+    port: 80
+    nodePort: 30081
+  deployment:
+    name: client
+    replicaCount: 1
+    # image:
+    #   repository: ghcr.io/devopsbookingftn2024/fe/app
+    #   tag: latest
+    image:
+      repository: fe-for-helm
+      tag: latest
+    containerPort: 80
+    # imagePullSecret: github-container-registry
+    imagePullSecret: ""
+  env:
+    userApiUrl: /user-service/
+    accommodationApiUrl: /accommodation-service/
+    reservationApiUrl: /reservation-service/
+    ratingApiUrl: /rating-service/
+    appName: Booking
+    standardFieldMaxLength: 100
+    longerFieldMaxLength: 300
+    maxFileSize: 5000000
+  metrics:
+    enabled: false
+
+user:
+  service:
+    name: user-service
+    port: 8081
+  deployment:
+    name: user
+    replicaCount: 1
+    image:
+      repository: ghcr.io/devopsbookingftn2024/user_service/user_service
+      # repository: user-for-helm
+      tag: latest
+    imagePullSecret: github-container-registry
+    # imagePullSecret: ""
+    containerPort: 8081
+    probes:
+      liveness:
+        path: /actuator/health/liveness
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /actuator/health/readiness
+        initialDelaySeconds: 15
+        periodSeconds: 5
+  env:
+    datasourceUrl: jdbc:postgresql://postgresql-db-user:5432/user_db
+    datasourceUsername: postgres
+    datasourcePassword: admin
+    accommodationServiceUrl: http://accommodation-service:8082
+    reservationServiceUrl: http://reservation-service:8083
+    notificationServiceUrl: http://notification-service:8085
+  metrics:
+    enabled: true
+    port: 8081
+    path: /actuator/prometheus
+
+accommodation:
+  service:
+    name: accommodation-service
+    port: 8082
+  deployment:
+    name: accommodation
+    replicaCount: 1
+    image:
+      repository: ghcr.io/devopsbookingftn2024/accommodation_service/accommodation_service
+      tag: latest
+    imagePullSecret: github-container-registry
+    containerPort: 8082
+    probes:
+      liveness:
+        path: /actuator/health/liveness
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /actuator/health/readiness
+        initialDelaySeconds: 15
+        periodSeconds: 5
+  env:
+    datasourceUrl: jdbc:postgresql://postgresql-db-accommodation:5432/accommodation_db
+    datasourceUsername: postgres
+    datasourcePassword: admin
+    userServiceUrl: http://user-service:8081
+    reservationServiceUrl: http://reservation-service:8083
+    ratingServiceUrl: http://rating-service:8084
+  metrics:
+    enabled: true
+    port: 8082
+    path: /actuator/prometheus
+
+reservation:
+  service:
+    name: reservation-service
+    port: 8083
+  deployment:
+    name: reservation
+    replicaCount: 1
+    image:
+      repository: ghcr.io/devopsbookingftn2024/reservation_service/reservation_service
+      tag: latest
+    imagePullSecret: github-container-registry
+    containerPort: 8083
+    probes:
+      liveness:
+        path: /actuator/health/liveness
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /actuator/health/readiness
+        initialDelaySeconds: 15
+        periodSeconds: 5
+  env:
+    datasourceUrl: jdbc:postgresql://postgresql-db-reservation:5432/reservation_db
+    datasourceUsername: postgres
+    datasourcePassword: admin
+    userServiceUrl: http://user-service:8081
+    accommodationServiceUrl: http://accommodation-service:8082
+    notificationServiceUrl: http://notification-service:8085
+  metrics:
+    enabled: true
+    port: 8083
+    path: /actuator/prometheus
+
+rating:
+  service:
+    name: rating-service
+    port: 8084
+  deployment:
+    name: rating
+    replicaCount: 1
+    image:
+      repository: ghcr.io/devopsbookingftn2024/rating_service/rating_service
+      tag: latest
+    imagePullSecret: github-container-registry
+    containerPort: 8084
+    probes:
+      liveness:
+        path: /actuator/health/liveness
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /actuator/health/readiness
+        initialDelaySeconds: 15
+        periodSeconds: 5
+  env:
+    datasourceUrl: jdbc:postgresql://postgresql-db-rating:5432/rating_db
+    datasourceUsername: postgres
+    datasourcePassword: admin
+    userServiceUrl: http://user-service:8081
+    accommodationServiceUrl: http://accommodation-service:8082
+    reservationServiceUrl: http://reservation-service:8083
+    notificationServiceUrl: http://notification-service:8085
+  metrics:
+    enabled: true
+    port: 8084
+    path: /actuator/prometheus
+
+notification:
+  service:
+    name: notification-service
+    port: 8085
+  deployment:
+    name: notification
+    replicaCount: 1
+    image:
+      repository: ghcr.io/devopsbookingftn2024/notification_service/notification_service
+      # repository: notification-for-helm
+      tag: latest
+    imagePullSecret: github-container-registry
+    # imagePullSecret: ""
+    containerPort: 8085
+    probes:
+      liveness:
+        path: /actuator/health/liveness
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /actuator/health/readiness
+        initialDelaySeconds: 15
+        periodSeconds: 5
+  env:
+    datasourceUrl: mongodb://mongodb-notification:27017/notification_db
+    datasource: notification_db
+    userServiceUrl: http://user-service:8081
+    websocketAllowedOrigin: http://client-service:80
+  metrics:
+    enabled: true
+    port: 8085
+    path: /actuator/prometheus
+
+postgresql:
+  user:
+    image: postgres:latest
+    port: 5432
+    database: user_db
+    username: postgres
+    password: admin
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  accommodation:
+    image: postgres:latest
+    port: 5432
+    database: accommodation_db
+    username: postgres
+    password: admin
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  reservation:
+    image: postgres:latest
+    port: 5432
+    database: reservation_db
+    username: postgres
+    password: admin
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  rating:
+    image: postgres:latest
+    port: 5432
+    database: rating_db
+    username: postgres
+    password: admin
+    persistence:
+      enabled: true
+      size: 1Gi
+
+mongodb:
+  notification:
+    image: mongo:latest
+    port: 27017
+    database: notification_db
+    persistence:
+      enabled: true
+      size: 1Gi
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      {{- range .Values.services }}
+      rewrite ^/{{ .path }}(/|$)(.*) /$2 break;
+      {{- end }}
+  tls: []
+
+services:
+  - path: user-service
+    serviceName: user-service
+    servicePort: 8081
+
+  - path: accommodation-service
+    serviceName: accommodation-service
+    servicePort: 8082
+
+  - path: reservation-service
+    serviceName: reservation-service
+    servicePort: 8083
+
+  - path: rating-service
+    serviceName: rating-service
+    servicePort: 8084
+
+  - path: notification-service
+    serviceName: notification-service
+    servicePort: 8085
+
+  - path: client
+    serviceName: client-service
+    servicePort: 3000

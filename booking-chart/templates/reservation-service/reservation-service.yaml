@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.reservation.service.name}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: {{.Values.reservation.deployment.name}}
+    # app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+    - protocol: TCP
+      name: http
+      port: {{.Values.reservation.service.port}}
+      targetPort: {{.Values.reservation.service.port}}
+  # {{- if .Values.reservation.metrics.enabled }}
+  #   - protocol: TCP
+  #     name: metrics
+  #     port: {{ .Values.reservation.metrics.port }}
+  #     targetPort: {{ .Values.reservation.metrics.port }}
+  # {{- end }}
+  type: ClusterIP
+  selector:
+    app: {{.Values.reservation.deployment.name}}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.reservation.deployment.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.reservation.deployment.replicaCount | default 1}}
+  selector:
+    matchLabels:
+      app: {{.Values.reservation.deployment.name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.reservation.deployment.name}}
+    spec:
+      containers:
+        - name: reservation-service
+          image: "{{ .Values.reservation.deployment.image.repository }}:{{ .Values.reservation.deployment.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{.Values.reservation.deployment.containerPort | int}}
+            # {{- if .Values.reservation.metrics.enabled }}
+            # - name : metrics
+            #   containerPort: {{ .Values.reservation.metrics.port }}
+            # {{- end }}
+          # resources:
+          #   limits:
+          #     memory: "512Mi"
+          #     cpu: "500m"
+          #   requests:
+          #     memory: "256Mi"
+          #     cpu: "250m"
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: {{.Values.reservation.env.datasourceUrl}}
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{.Values.reservation.env.datasourceUsername}}
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{.Values.reservation.env.datasourcePassword}}
+            - name: USER_SERVICE_URL
+              value: {{.Values.reservation.env.userServiceUrl}}
+            - name: ACCOMMODATION_SERVICE_URL
+              value: {{.Values.reservation.env.accommodationServiceUrl}}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{.Values.reservation.env.notificationServiceUrl}}
+          livenessProbe:
+            httpGet:
+              path: {{.Values.reservation.deployment.probes.liveness.path | default "/actuator/health/liveness"}}
+              port: {{.Values.reservation.deployment.containerPort}}
+            initialDelaySeconds: {{.Values.reservation.deployment.probes.liveness.initialDelaySeconds | default 30}}
+            periodSeconds: {{.Values.reservation.deployment.probes.liveness.periodSeconds | default 10}}
+
+          readinessProbe:
+            httpGet:
+              path: {{.Values.reservation.deployment.probes.readiness.path | default "/actuator/health/readiness"}}
+              port: {{.Values.reservation.deployment.containerPort}}
+            initialDelaySeconds: {{.Values.reservation.deployment.probes.readiness.initialDelaySeconds | default 15}}
+            periodSeconds: {{.Values.reservation.deployment.probes.readiness.periodSeconds | default 5}}
+      imagePullSecrets:
+        - name: {{.Values.reservation.deployment.imagePullSecret}}
