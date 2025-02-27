@@ -1,0 +1,35 @@
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      {{- range .Values.services }}
+      rewrite ^/{{ .path }}(/|$)(.*) /$2 break;
+      {{- end }}
+  tls: []
+
+services:
+  - path: user-service
+    serviceName: user-service
+    servicePort: 8081
+
+  - path: accommodation-service
+    serviceName: accommodation-service
+    servicePort: 8082
+
+  - path: reservation-service
+    serviceName: reservation-service
+    servicePort: 8083
+
+  - path: rating-service
+    serviceName: rating-service
+    servicePort: 8084
+
+  - path: notification-service
+    serviceName: notification-service
+    servicePort: 8085
+
+  - path: client
+    serviceName: client-service
+    servicePort: 3000

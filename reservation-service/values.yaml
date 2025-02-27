@@ -1,0 +1,50 @@
+namespace: "booking"
+
+service:
+  fullname: reservation-service
+  type: ClusterIP
+  port: 8083
+  selectorLabels:
+    app: reservation
+
+deployment:
+  name: reservation
+  replicaCount: 1
+  image:
+    repository: ghcr.io/devopsbookingftn2024/reservation_service/reservation_service
+    # repository: reservation-for-helm
+    tag: latest
+  imagePullSecret: github-container-registry
+  # imagePullSecret: ""
+  containerPort: 8083
+  probes:
+    liveness:
+      path: /actuator/health/liveness
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    readiness:
+      path: /actuator/health/readiness
+      initialDelaySeconds: 30
+      periodSeconds: 5
+  resources: {} 
+
+configmap:
+  data:
+    USER_SERVICE_URL: http://user-service:8081
+    ACCOMMODATION_SERVICE_URL: http://accommodation-service:8082
+    NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    SPRING_DATASOURCE_URL: jdbc:postgresql://test-postgres-database:5432/test_db
+
+secret:
+  data:
+    SPRING_DATASOURCE_USERNAME: cG9zdGdyZXM=
+    SPRING_DATASOURCE_PASSWORD: YWRtaW4=
+
+monitoring:
+  enabled: true
+  metrics:
+    path: /actuator/prometheus
+    interval: 15s
+
+localDashboards: false
+dashboards: {}

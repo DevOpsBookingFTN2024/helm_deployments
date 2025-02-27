@@ -1,0 +1,21 @@
+# values-postgresql.yaml
+database:
+  type: postgresql
+  enabled: true
+  name: postgresql
+  image: postgres:latest
+  port: 5432
+  persistence:
+    enabled: true
+    size: 1Gi
+
+configmap:
+  enabled: true
+  data :
+    POSTGRES_DB: test_db
+
+secret:
+  enabled: true
+  data:
+    POSTGRES_USER: cG9zdGdyZXM=
+    POSTGRES_PASSWORD: YWRtaW4=

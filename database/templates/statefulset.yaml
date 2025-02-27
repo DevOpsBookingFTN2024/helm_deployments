@@ -1,0 +1,46 @@
+{{- if .Values.database.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "database.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "database.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "database.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "database.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "database.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.database.type }}
+          image: {{ .Values.database.image }}
+          ports:
+            - containerPort: {{ .Values.database.port }}
+          envFrom:
+            {{- if .Values.configmap.enabled }}
+            - configMapRef:
+                name: {{ include "database.fullname" . }}-config
+            {{- end }}
+            {{- if .Values.secret.enabled }}
+            - secretRef:
+                name: {{ include "database.fullname" . }}-secret
+            {{- end }}
+          volumeMounts:
+            - name: database-data
+              mountPath: {{ if eq .Values.database.type "mongodb" }}/data/db{{ else }}/var/lib/postgresql/data{{ end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: database-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.database.persistence.size }}
+{{- end }}

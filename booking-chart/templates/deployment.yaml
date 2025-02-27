@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount | default 1}}
+  selector:
+    matchLabels:
+      app: {{ .Values.deployment.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deployment.name }}
+    spec:
+      containers:
+        - name: {{ .Values.deployment.name }}-service
+          image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{ .Values.deployment.containerPort }}
+          envFrom:
+          - configMapRef:
+              name:  {{ include "service.fullname" . }}-config
+          - secretRef:
+              name:  {{ include "service.fullname" . }}-secret
+          {{- if .Values.deployment.probes }}
+          {{- if .Values.deployment.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.deployment.probes.liveness.path }}
+              port: {{ .Values.deployment.containerPort }}
+            initialDelaySeconds: {{ .Values.deployment.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.probes.liveness.periodSeconds }}
+          {{- end }}
+          {{- if .Values.deployment.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.deployment.probes.readiness.path }}
+              port: {{ .Values.deployment.containerPort }}
+            initialDelaySeconds: {{ .Values.deployment.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.probes.readiness.periodSeconds }}
+          {{- end }}
+          {{- end }}
+      imagePullSecrets:
+        - name: {{ .Values.deployment.imagePullSecret }}
