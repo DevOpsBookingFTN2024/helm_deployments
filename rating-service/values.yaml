@@ -1,0 +1,49 @@
+namespace: "booking"
+
+service:
+  fullname: rating-service
+  type: ClusterIP
+  port: 8084
+  selectorLabels:
+    app: rating
+
+deployment:
+  name: rating
+  replicaCount: 1
+  image:
+    repository: ghcr.io/devopsbookingftn2024/rating_service/rating_service
+    tag: latest
+  imagePullSecret: github-container-registry
+  containerPort: 8084
+  probes:
+    liveness:
+      path: /actuator/health/liveness
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    readiness:
+      path: /actuator/health/readiness
+      initialDelaySeconds: 30
+      periodSeconds: 5
+  resources: {} 
+
+configmap:
+  data:
+    USER_SERVICE_URL: http://user-service:8081
+    ACCOMMODATION_SERVICE_URL: http://accommodation-service:8082
+    RESERVATION_SERVICE_URL: http://reservation-service:8083
+    NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    SPRING_DATASOURCE_URL: jdbc:postgresql://rating-postgres-database:5432/rating_db
+
+secret:
+  data:
+    SPRING_DATASOURCE_USERNAME: cG9zdGdyZXM=
+    SPRING_DATASOURCE_PASSWORD: YWRtaW4=
+
+monitoring:
+  enabled: true
+  metrics:
+    path: /actuator/prometheus
+    interval: 15s
+
+localDashboards: false
+dashboards: {}

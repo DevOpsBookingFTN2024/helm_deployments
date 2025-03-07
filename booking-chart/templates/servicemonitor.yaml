@@ -1,0 +1,20 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "service.fullname" . }}-servicemonitor
+  labels:
+{{ include  "service.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.deployment.name }}
+      app.kubernetes.io/managed-by: Helm
+  namespaceSelector:
+    matchNames:
+      - booking
+  endpoints:
+    - port: http
+      interval: {{ .Values.monitoring.metrics.interval }}
+      path: {{ .Values.monitoring.metrics.path }}
+{{- end }}

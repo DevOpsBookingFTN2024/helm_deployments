@@ -1,0 +1,18 @@
+# values-postgresql.yaml
+database:
+  type: mongodb
+  enabled: true
+  name: mongodb
+  image: mongo:latest
+  port: 27017
+  persistence:
+    enabled: true
+    size: 1Gi
+
+configmap:
+  enabled: true
+  data :
+    MONGO_INITDB_DATABASE: notification_db
+
+secret:
+  enabled : false

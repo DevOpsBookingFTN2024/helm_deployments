@@ -1,0 +1,58 @@
+namespace: "booking"
+
+service:
+  fullname: accommodation-service
+  type: ClusterIP
+  port: 8082
+  selectorLabels:
+    app: accommodation
+
+deployment:
+  name: accommodation
+  replicaCount: 1
+  image:
+    repository: ghcr.io/devopsbookingftn2024/accommodation_service/accommodation_service
+    # repository: accommodation-for-helm
+    tag: latest
+  imagePullSecret: github-container-registry
+  # imagePullSecret: ""
+  containerPort: 8082
+  probes:
+    liveness:
+      path: /actuator/health/liveness
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    readiness:
+      path: /actuator/health/readiness
+      initialDelaySeconds: 30
+      periodSeconds: 5
+  resources: {}
+
+configmap:
+  data:
+    USER_SERVICE_URL: http://user-service:8081
+    RESERVATION_SERVICE_URL: http://reservation-service:8083
+    RATING_SERVICE_URL: http://rating-service:8084
+    NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    SPRING_DATASOURCE_URL: jdbc:postgresql://accommodation-postgres-database:5432/accommodation_db
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: manual
+  hostPath: "/mnt/data/accommodation"
+
+secret:
+  data:
+    SPRING_DATASOURCE_USERNAME: cG9zdGdyZXM=
+    SPRING_DATASOURCE_PASSWORD: YWRtaW4=
+
+monitoring:
+  enabled: true
+  metrics:
+    path: /actuator/prometheus
+    interval: 15s
+
+localDashboards: false # Set to true if you have local dashboards to include
+dashboards: {} # Define any dashboards if localDashboards is true
+

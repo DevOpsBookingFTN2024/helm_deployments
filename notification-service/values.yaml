@@ -1,0 +1,42 @@
+namespace: "booking"
+
+service:
+  fullname: notification-service
+  type: ClusterIP
+  port: 8085
+  selectorLabels:
+    app: notification
+
+deployment:
+  name: notification
+  replicaCount: 1
+  image:
+    repository: ghcr.io/devopsbookingftn2024/notification_service/notification_service
+    tag: latest
+  imagePullSecret: github-container-registry
+  containerPort: 8085
+  probes:
+    liveness:
+      path: /actuator/health/liveness
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    readiness:
+      path: /actuator/health/readiness
+      initialDelaySeconds: 30
+      periodSeconds: 5
+  resources: {} 
+
+configmap:
+  data:
+    USER_SERVICE_URL: http://user-service:8081
+    SPRING_DATA_MONGODB_URI: mongodb://notification-mongo-database:27017/notification_db
+    SPRING_DATA_MONGODB_DATABASE: notification_db
+
+monitoring:
+  enabled: true
+  metrics:
+    path: /actuator/prometheus
+    interval: 15s
+
+localDashboards: false
+dashboards: {}
